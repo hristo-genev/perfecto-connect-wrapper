@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Perfecto Connect Wrapper for MacOS
+# @author Hristo G hgenev@perforce.com
+# Automatically loads cloud token from token storage tokens.ini file
+# or from file pointed by the PERFECTO_TOKEN_STORAGE environment variable
+
+cloud=${1//\.perfectomobile\.com/}
+
+if [ -z "$cloud" ]
+then
+    echo "Please provide a cloud name i.e. 'pconnectw demo' or 'pconnectw stop' or 'pconnectw <cloudname> doctor'"
+    exit 0
+fi
+
+if [ ! -f perfectoconnect ]
+then 
+    echo "perfectoconnect executable does not exist"
+    exit 0
+fi
+
+if [[ "$cloud" == "stop" ]]
+then
+    perfectoconnect stop
+    exit 0
+fi
+
+tokens_file=tokens.ini
+
+# Check if environment variable PERFECTO_TOKEN_STORAGE exists to override the tokens file location
+if [ -z "${PERFECTO_TOKEN_STORAGE}" ]
+then
+    tokens_file="${PERFECTO_TOKEN_STORAGE}"
+fi
+
+token=$(awk -F "${cloud}=" '/=/ {print $2}' $tokens_file)
+
+if [ -z "$token" ]
+then
+    echo "Token for cloud $1 not found"
+    exit 0
+fi
+
+command="perfectoconnect start -c $cloud.perfectomobile.com -s $token"
+
+if [[ $2 == "doctor" ]]
+then 
+  command="perfectoconnect doctor -c $cloud.perfectomobile.com -s $token"
+fi
+
+if [[ $3 == "-v" ]]
+then
+  command="$command -v"
+fi
+
+echo $command
+$command
